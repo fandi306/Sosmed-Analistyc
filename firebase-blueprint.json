@@ -1,0 +1,213 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User account and profile information for Deluxe Coffee social manager",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "editor", "analyst"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "ContentIdea": {
+      "title": "Content Idea",
+      "description": "Planned content idea in the planner or calendar",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string", "maxLength": 300 },
+        "objective": { "type": "string", "maxLength": 500 },
+        "platform": { "type": "string", "enum": ["instagram", "tiktok", "both"] },
+        "pillar": { "type": "string", "maxLength": 100 },
+        "funnelStage": { "type": "string", "enum": ["TOFU", "MOFU", "BOFU"] },
+        "targetAudience": { "type": "string", "maxLength": 300 },
+        "audienceProblem": { "type": "string", "maxLength": 500 },
+        "contentAngle": { "type": "string", "maxLength": 500 },
+        "hook": { "type": "string", "maxLength": 500 },
+        "contentFormat": { "type": "string", "maxLength": 100 },
+        "contentConcept": { "type": "string", "maxLength": 2000 },
+        "cta": { "type": "string", "maxLength": 300 },
+        "priority": { "type": "string", "enum": ["low", "medium", "high"] },
+        "status": { "type": "string", "enum": ["idea", "planning", "scripting", "production", "editing", "review", "scheduled", "published"] },
+        "plannedDate": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "platform", "pillar", "funnelStage", "status"]
+    },
+    "PublishedContent": {
+      "title": "Published Content Record",
+      "description": "Actual published social media post with metrics for analytics",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "contentId": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 300 },
+        "publishDate": { "type": "string" },
+        "platform": { "type": "string", "enum": ["instagram", "tiktok"] },
+        "pillar": { "type": "string", "maxLength": 100 },
+        "funnelStage": { "type": "string", "enum": ["TOFU", "MOFU", "BOFU"] },
+        "contentFormat": { "type": "string", "maxLength": 100 },
+        "hook": { "type": "string", "maxLength": 500 },
+        "caption": { "type": "string", "maxLength": 3000 },
+        "cta": { "type": "string", "maxLength": 300 },
+        "contentAngle": { "type": "string", "maxLength": 500 },
+        "productFeatured": { "type": "string", "maxLength": 200 },
+        "videoDuration": { "type": "number" },
+        "contentUrl": { "type": "string", "maxLength": 1000 },
+        "views": { "type": "number" },
+        "reach": { "type": "number" },
+        "likes": { "type": "number" },
+        "comments": { "type": "number" },
+        "shares": { "type": "number" },
+        "saves": { "type": "number" },
+        "profileVisits": { "type": "number" },
+        "followersGained": { "type": "number" },
+        "linkClicks": { "type": "number" },
+        "isDemo": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "publishDate", "platform", "pillar", "funnelStage", "contentFormat"]
+    },
+    "KpiTarget": {
+      "title": "KPI Target",
+      "description": "Monthly or quarterly performance targets for social media",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "period": { "type": "string", "maxLength": 50 },
+        "periodType": { "type": "string", "enum": ["monthly", "quarterly"] },
+        "contentTarget": { "type": "number" },
+        "igFollowerTarget": { "type": "number" },
+        "tiktokFollowerTarget": { "type": "number" },
+        "reachTarget": { "type": "number" },
+        "engagementRateTarget": { "type": "number" },
+        "saveRateTarget": { "type": "number" },
+        "profileVisitTarget": { "type": "number" },
+        "linkClickTarget": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "period", "periodType"]
+    },
+    "Competitor": {
+      "title": "Competitor Profile",
+      "description": "Competitor account and tracked social content",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "brandName": { "type": "string", "maxLength": 200 },
+        "platform": { "type": "string", "enum": ["instagram", "tiktok"] },
+        "username": { "type": "string", "maxLength": 100 },
+        "profileUrl": { "type": "string", "maxLength": 500 },
+        "followers": { "type": "number" },
+        "category": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "brandName", "platform", "username"]
+    },
+    "CompetitorPost": {
+      "title": "Tracked Competitor Post",
+      "description": "Manually tracked post from a competitor",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "competitorId": { "type": "string" },
+        "brandName": { "type": "string", "maxLength": 200 },
+        "contentUrl": { "type": "string", "maxLength": 500 },
+        "publicationDate": { "type": "string" },
+        "contentFormat": { "type": "string", "maxLength": 100 },
+        "topic": { "type": "string", "maxLength": 300 },
+        "hook": { "type": "string", "maxLength": 500 },
+        "views": { "type": "number" },
+        "likes": { "type": "number" },
+        "comments": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "competitorId", "topic"]
+    },
+    "WeeklyReport": {
+      "title": "Weekly Report",
+      "description": "Weekly performance report generated and editable",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string", "maxLength": 300 },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "executiveSummary": { "type": "string", "maxLength": 5000 },
+        "igPerformance": { "type": "string", "maxLength": 5000 },
+        "tiktokPerformance": { "type": "string", "maxLength": 5000 },
+        "totalPublished": { "type": "number" },
+        "bestContent": { "type": "string", "maxLength": 3000 },
+        "worstContent": { "type": "string", "maxLength": 3000 },
+        "pillarPerformance": { "type": "string", "maxLength": 3000 },
+        "kpiProgress": { "type": "string", "maxLength": 3000 },
+        "keyFindings": { "type": "string", "maxLength": 5000 },
+        "challenges": { "type": "string", "maxLength": 5000 },
+        "recommendations": { "type": "string", "maxLength": 5000 },
+        "status": { "type": "string", "enum": ["draft", "finalized"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "startDate", "endDate"]
+    },
+    "BrandSetting": {
+      "title": "Brand Settings",
+      "description": "Configuration for Deluxe Coffee brand guidelines",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "brandName": { "type": "string" },
+        "mission": { "type": "string" },
+        "vision": { "type": "string" },
+        "usp": { "type": "string" },
+        "location": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "brandName"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile document"
+    },
+    "/content_ideas/{ideaId}": {
+      "schema": "ContentIdea",
+      "description": "Planned content ideas"
+    },
+    "/published_content/{contentId}": {
+      "schema": "PublishedContent",
+      "description": "Published content records with metrics"
+    },
+    "/kpis/{kpiId}": {
+      "schema": "KpiTarget",
+      "description": "KPI targets and achievement metrics"
+    },
+    "/competitors/{competitorId}": {
+      "schema": "Competitor",
+      "description": "Monitored competitors"
+    },
+    "/competitor_posts/{postId}": {
+      "schema": "CompetitorPost",
+      "description": "Tracked competitor posts"
+    },
+    "/weekly_reports/{reportId}": {
+      "schema": "WeeklyReport",
+      "description": "Weekly performance reports"
+    },
+    "/brand_settings/{userId}": {
+      "schema": "BrandSetting",
+      "description": "Brand operational settings"
+    }
+  }
+}

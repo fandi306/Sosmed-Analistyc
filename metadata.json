@@ -1,0 +1,6 @@
+{
+  "name": "Deluxe Social Intelligence",
+  "description": "Sistem Manajemen & Kecerdasan Media Sosial untuk Deluxe Coffee - Specialty Coffee Roastery Bali.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
