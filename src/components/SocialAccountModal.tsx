@@ -45,18 +45,6 @@ export const SocialAccountModal: React.FC<SocialAccountModalProps> = ({
   const [inputFollowers, setInputFollowers] = useState<number>(currentAccount?.followers || 12850);
   const [isEditing, setIsEditing] = useState(false);
 
-  React.useEffect(() => {
-    if (isOpen) {
-      const acc = linkedAccounts.find((a) => a.platform === selectedPlatform);
-      if (acc) {
-        setInputUrl(acc.profileUrl);
-        setInputFollowers(acc.followers);
-      }
-      setSyncSuccessMsg('');
-      setSyncErrorMsg('');
-    }
-  }, [isOpen, selectedPlatform, linkedAccounts]);
-
   // Sync state with selected platform
   const handleSelectPlatform = (plat: 'instagram' | 'tiktok') => {
     setSelectedPlatform(plat);
@@ -75,43 +63,19 @@ export const SocialAccountModal: React.FC<SocialAccountModalProps> = ({
     setSyncSuccessMsg('');
     setSyncErrorMsg('');
 
-    const targetUrl = (inputUrl || currentAccount?.profileUrl || '').trim();
-    const targetFollowers = Number(inputFollowers) || currentAccount?.followers || 12850;
-
-    // Optimistic instant update so user never waits
-    let handle = currentAccount?.handle || 'deluxecoffee.bali';
-    if (targetUrl) {
-      const match = targetUrl.match(/(?:instagram\.com\/|tiktok\.com\/@?)([a-zA-Z0-9._]+)/);
-      if (match) handle = match[1];
-    }
-
-    const optimisticAccount = {
-      ...currentAccount,
-      platform: selectedPlatform,
-      handle,
-      profileUrl: targetUrl || currentAccount.profileUrl,
-      followers: targetFollowers,
-      lastSyncedAt: new Date().toISOString(),
-      status: 'connected' as const,
-    };
-    await updateLinkedAccount(optimisticAccount);
-
     try {
       const result = await syncAccountRealtime(
         selectedPlatform,
-        targetUrl,
-        targetFollowers
+        inputUrl || currentAccount.profileUrl,
+        inputFollowers || currentAccount.followers
       );
       setSyncSuccessMsg(
-        result?.message ||
-          `Akun ${selectedPlatform.toUpperCase()} @${handle} berhasil disinkronkan secara real-time!`
+        result.message ||
+          `Akun ${selectedPlatform.toUpperCase()} berhasil disinkronkan secara real-time!`
       );
       setIsEditing(false);
     } catch (err: any) {
-      setSyncSuccessMsg(
-        `Tautan akun ${selectedPlatform.toUpperCase()} @${handle} berhasil diperbarui dan aktif!`
-      );
-      setIsEditing(false);
+      setSyncErrorMsg(err.message || 'Gagal menyinkronkan akun.');
     } finally {
       setIsSyncing(false);
     }

@@ -102,7 +102,6 @@ interface DataContextType {
   addContentIdea: (item: Omit<ContentIdea, 'id' | 'userId'>) => Promise<string>;
   updateContentIdea: (id: string, item: Partial<ContentIdea>) => Promise<void>;
   deleteContentIdea: (id: string) => Promise<void>;
-  importContentIdeaBatch: (items: Omit<ContentIdea, 'id' | 'userId'>[]) => Promise<{ imported: number }>;
 
   updateKpiTarget: (target: Partial<KpiTarget>) => Promise<void>;
 
@@ -576,37 +575,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const importContentIdeaBatch = async (
-    items: Omit<ContentIdea, 'id' | 'userId'>[]
-  ): Promise<{ imported: number }> => {
-    let imported = 0;
-    if (user) {
-      for (const item of items) {
-        try {
-          await addDoc(collection(db, 'content_ideas'), {
-            ...item,
-            userId: user.uid,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          });
-          imported++;
-        } catch (e) {
-          console.warn('Batch add idea failed:', e);
-        }
-      }
-    } else {
-      const newItems: ContentIdea[] = items.map((item, idx) => ({
-        ...item,
-        id: `idea-${Date.now()}-${idx}`,
-        userId: 'guest',
-        createdAt: new Date().toISOString(),
-      }));
-      setLocalIdeas((prev) => [...newItems, ...prev]);
-      imported = newItems.length;
-    }
-    return { imported };
-  };
-
   const updateKpiTarget = async (target: Partial<KpiTarget>) => {
     if (user) {
       try {
@@ -875,7 +843,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addContentIdea,
         updateContentIdea,
         deleteContentIdea,
-        importContentIdeaBatch,
         updateKpiTarget,
         addCompetitor,
         updateCompetitor,

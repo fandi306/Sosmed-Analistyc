@@ -25,13 +25,6 @@ import {
   ArrowRight,
   Globe,
   ExternalLink,
-  Activity,
-  Award,
-  Zap,
-  PieChart,
-  Clock,
-  ChevronRight,
-  Info,
 } from 'lucide-react';
 import { useData } from '../context/DataContext.tsx';
 import {
@@ -46,7 +39,6 @@ import { PublishedContent } from '../types.ts';
 import { SocialAccountModal } from '../components/SocialAccountModal.tsx';
 
 type PeriodFilter = '7d' | '30d' | '90d' | 'custom';
-type MetricChartType = 'views' | 'reach' | 'saves' | 'shares' | 'engagement';
 
 export const DashboardView: React.FC<{
   onNavigateTab: (tab: any) => void;
@@ -65,9 +57,7 @@ export const DashboardView: React.FC<{
   const [period, setPeriod] = useState<PeriodFilter>('30d');
   const [customStart, setCustomStart] = useState<string>('');
   const [customEnd, setCustomEnd] = useState<string>('');
-  const [activeMetricChart, setActiveMetricChart] = useState<MetricChartType>('views');
-  const [platformChartFilter, setPlatformChartFilter] = useState<'all' | 'instagram' | 'tiktok'>('all');
-  const [selectedChartItem, setSelectedChartItem] = useState<PublishedContent | null>(null);
+  const [activeMetricChart, setActiveMetricChart] = useState<'reach' | 'views' | 'engagement'>('reach');
   const [isSocialModalOpen, setIsSocialModalOpen] = useState(false);
   const [selectedSocialPlatform, setSelectedSocialPlatform] = useState<'instagram' | 'tiktok'>('instagram');
 
@@ -130,131 +120,6 @@ export const DashboardView: React.FC<{
     return [...currentItems]
       .sort((a, b) => computeContentScore(b) - computeContentScore(a))
       .slice(0, 5);
-  }, [currentItems]);
-
-  // Chart calculation & metrics for interactive trend visualization
-  const chartItems = useMemo(() => {
-    return currentItems.filter((item) => {
-      if (platformChartFilter === 'all') return true;
-      return item.platform === platformChartFilter;
-    });
-  }, [currentItems, platformChartFilter]);
-
-  const chartMetrics = useMemo(() => {
-    if (chartItems.length === 0) {
-      return { maxVal: 1, avgVal: 0, peakItem: null, getVal: () => 0 };
-    }
-    const getVal = (item: PublishedContent) => {
-      switch (activeMetricChart) {
-        case 'views':
-          return item.views || 0;
-        case 'reach':
-          return item.reach || 0;
-        case 'saves':
-          return item.saves || 0;
-        case 'shares':
-          return item.shares || 0;
-        case 'engagement': {
-          const m = calculateMetrics(item);
-          return m.engagementByReach;
-        }
-      }
-    };
-
-    const values = chartItems.map(getVal);
-    const maxVal = Math.max(...values, 1);
-    const sumVal = values.reduce((a, b) => a + b, 0);
-    const avgVal = sumVal / chartItems.length;
-
-    let peakIdx = 0;
-    values.forEach((v, idx) => {
-      if (v > values[peakIdx]) peakIdx = idx;
-    });
-    const peakItem = chartItems[peakIdx] || null;
-
-    return { maxVal, avgVal, peakItem, getVal };
-  }, [chartItems, activeMetricChart]);
-
-  // 1. Funnel Pipeline Analytics (TOFU, MOFU, BOFU)
-  const funnelAnalytics = useMemo(() => {
-    const stages = {
-      TOFU: { count: 0, views: 0, reach: 0, saves: 0, title: 'Awareness & Relatable (TOFU)', desc: 'Menarik penonton baru lewat konten relatable & tren malam', color: 'from-sky-500 to-blue-600' },
-      MOFU: { count: 0, views: 0, reach: 0, saves: 0, title: 'Edukasi Seduh & Roastery (MOFU)', desc: 'Membangun otoritas SCA roaster lewat pemecahan masalah rasa', color: 'from-[#0e4380] to-[#00224a]' },
-      BOFU: { count: 0, views: 0, reach: 0, saves: 0, title: 'Penawaran Fresh Beans & Closing (BOFU)', desc: 'Konversi penonton menjadi pembeli biji kopi Roast-to-Order', color: 'from-[#dab553] to-amber-600' },
-    };
-
-    currentItems.forEach((c) => {
-      const stage = (c.funnelStage || 'TOFU') as 'TOFU' | 'MOFU' | 'BOFU';
-      if (stages[stage]) {
-        stages[stage].count += 1;
-        stages[stage].views += c.views || 0;
-        stages[stage].reach += c.reach || 0;
-        stages[stage].saves += c.saves || 0;
-      }
-    });
-
-    const totalViews = Math.max(currentStats.totalViews, 1);
-    return {
-      stages,
-      tofuPct: Math.round((stages.TOFU.views / totalViews) * 100),
-      mofuPct: Math.round((stages.MOFU.views / totalViews) * 100),
-      bofuPct: Math.round((stages.BOFU.views / totalViews) * 100),
-    };
-  }, [currentItems, currentStats]);
-
-  // 2. Coffee Single Origin SKU Performance Leaderboard
-  const skuAnalytics = useMemo(() => {
-    const map: Record<string, { count: number; views: number; saves: number; reach: number; name: string }> = {};
-
-    currentItems.forEach((item) => {
-      let rawSku = (item.productFeatured || '').trim();
-      let skuKey = 'Bali Kintamani Single Origin';
-      if (rawSku.toLowerCase().includes('kintamani')) skuKey = 'Bali Kintamani Single Origin';
-      else if (rawSku.toLowerCase().includes('gayo')) skuKey = 'Aceh Gayo Wet Hulled';
-      else if (rawSku.toLowerCase().includes('toraja')) skuKey = 'Sulawesi Toraja Sapan';
-      else if (rawSku.toLowerCase().includes('ijen')) skuKey = 'Java Ijen Anaerobic';
-      else if (rawSku.toLowerCase().includes('bajawa') || rawSku.toLowerCase().includes('flores')) skuKey = 'Flores Bajawa';
-      else if (rawSku.toLowerCase().includes('kerinci')) skuKey = 'Sumatra Kerinci Washed';
-      else if (rawSku) skuKey = rawSku;
-
-      if (!map[skuKey]) {
-        map[skuKey] = { count: 0, views: 0, saves: 0, reach: 0, name: skuKey };
-      }
-      map[skuKey].count += 1;
-      map[skuKey].views += item.views || 0;
-      map[skuKey].saves += item.saves || 0;
-      map[skuKey].reach += item.reach || 0;
-    });
-
-    const sorted = Object.values(map).sort((a, b) => b.views - a.views);
-    const maxSkuViews = Math.max(...sorted.map((s) => s.views), 1);
-    return { list: sorted, maxSkuViews };
-  }, [currentItems]);
-
-  // 3. Best Posting Time & Format Analytics
-  const formatAnalytics = useMemo(() => {
-    const formats: Record<string, { count: number; views: number; saves: number; reach: number }> = {
-      'Reels (Instagram)': { count: 0, views: 0, saves: 0, reach: 0 },
-      'TikTok Video': { count: 0, views: 0, saves: 0, reach: 0 },
-      'Carousel Edukasi': { count: 0, views: 0, saves: 0, reach: 0 },
-      'Single Post': { count: 0, views: 0, saves: 0, reach: 0 },
-    };
-
-    currentItems.forEach((i) => {
-      const f = (i.contentFormat || '').toLowerCase();
-      let key = 'Reels (Instagram)';
-      if (i.platform === 'tiktok') key = 'TikTok Video';
-      else if (f.includes('carousel')) key = 'Carousel Edukasi';
-      else if (f.includes('foto') || f.includes('image') || f.includes('single')) key = 'Single Post';
-
-      if (!formats[key]) formats[key] = { count: 0, views: 0, saves: 0, reach: 0 };
-      formats[key].count += 1;
-      formats[key].views += i.views || 0;
-      formats[key].saves += i.saves || 0;
-      formats[key].reach += i.reach || 0;
-    });
-
-    return formats;
   }, [currentItems]);
 
   // Production progress
@@ -896,217 +761,89 @@ export const DashboardView: React.FC<{
         </div>
       </div>
 
-      {/* COMPREHENSIVE INTERACTIVE PERFORMANCE TREND CHART */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-slate-100">
-          <div>
-            <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-[#0e4380]" />
-              <h3 className="text-base font-bold text-slate-900">
-                Grafik Analitik & Tren Konten Deluxe Coffee
-              </h3>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                Data Metrik Riil
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Klik pada batang konten untuk melihat rincian naskah, SKU kopi, dan interaksi detail.
-            </p>
-          </div>
-
-          {/* Metric Selector Tabs */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Platform filter pill */}
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-semibold text-slate-600">
-              <button
-                onClick={() => setPlatformChartFilter('all')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  platformChartFilter === 'all' ? 'bg-[#00224a] text-white shadow-sm' : 'hover:text-slate-900'
-                }`}
-              >
-                Semua
-              </button>
-              <button
-                onClick={() => setPlatformChartFilter('instagram')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  platformChartFilter === 'instagram' ? 'bg-pink-600 text-white shadow-sm' : 'hover:text-slate-900'
-                }`}
-              >
-                Instagram
-              </button>
-              <button
-                onClick={() => setPlatformChartFilter('tiktok')}
-                className={`px-2.5 py-1 rounded-lg transition-all ${
-                  platformChartFilter === 'tiktok' ? 'bg-black text-white shadow-sm' : 'hover:text-slate-900'
-                }`}
-              >
-                TikTok
-              </button>
+      {/* TREND CHART & TOP PERFORMING RANKING */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Trend Visualization */}
+        <div className="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900">Tren Performa Konten Terbit</h3>
+              <p className="text-xs text-slate-500">Visualisasi metrik per konten yang dipublikasikan</p>
             </div>
 
-            {/* Metric Chart Type */}
-            <div className="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-semibold text-slate-700">
-              <button
-                onClick={() => setActiveMetricChart('views')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
-                  activeMetricChart === 'views' ? 'bg-[#00224a] text-white shadow' : 'hover:text-slate-900'
-                }`}
-              >
-                <Eye className="w-3.5 h-3.5 text-[#dab553]" />
-                <span>Views</span>
-              </button>
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg text-xs font-medium">
               <button
                 onClick={() => setActiveMetricChart('reach')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
-                  activeMetricChart === 'reach' ? 'bg-[#00224a] text-white shadow' : 'hover:text-slate-900'
+                className={`px-2.5 py-1 rounded ${
+                  activeMetricChart === 'reach' ? 'bg-[#00224a] text-white' : 'text-slate-700'
                 }`}
               >
-                <Compass className="w-3.5 h-3.5" />
-                <span>Reach</span>
+                Reach
               </button>
               <button
-                onClick={() => setActiveMetricChart('saves')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
-                  activeMetricChart === 'saves' ? 'bg-[#00224a] text-white shadow' : 'hover:text-slate-900'
+                onClick={() => setActiveMetricChart('views')}
+                className={`px-2.5 py-1 rounded ${
+                  activeMetricChart === 'views' ? 'bg-[#00224a] text-white' : 'text-slate-700'
                 }`}
               >
-                <Bookmark className="w-3.5 h-3.5 text-amber-300" />
-                <span>Saves</span>
-              </button>
-              <button
-                onClick={() => setActiveMetricChart('shares')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
-                  activeMetricChart === 'shares' ? 'bg-[#00224a] text-white shadow' : 'hover:text-slate-900'
-                }`}
-              >
-                <Share2 className="w-3.5 h-3.5 text-blue-300" />
-                <span>Shares</span>
+                Views
               </button>
               <button
                 onClick={() => setActiveMetricChart('engagement')}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-all ${
-                  activeMetricChart === 'engagement' ? 'bg-[#00224a] text-white shadow' : 'hover:text-slate-900'
+                className={`px-2.5 py-1 rounded ${
+                  activeMetricChart === 'engagement' ? 'bg-[#00224a] text-white' : 'text-slate-700'
                 }`}
               >
-                <TrendingUp className="w-3.5 h-3.5 text-emerald-300" />
-                <span>Eng. Rate</span>
+                Saves & Shares
               </button>
             </div>
           </div>
-        </div>
 
-        {/* Peak Performance Highlight Banner */}
-        {chartMetrics.peakItem && (
-          <div className="p-3.5 rounded-xl bg-gradient-to-r from-amber-50 via-blue-50 to-indigo-50 border border-amber-200/80 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-[#dab553] text-[#00224a] flex items-center justify-center font-bold flex-shrink-0 shadow-sm">
-                <Award className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-slate-900">
-                    Konten Puncak Terpilih ({activeMetricChart.toUpperCase()}):
-                  </span>
-                  <span className="font-bold text-[#0e4380]">
-                    {activeMetricChart === 'engagement'
-                      ? formatPercent(calculateMetrics(chartMetrics.peakItem).engagementByReach)
-                      : formatNumber(chartMetrics.getVal(chartMetrics.peakItem))}
-                  </span>
-                  <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-slate-200 text-slate-700">
-                    {chartMetrics.peakItem.platform}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-600 line-clamp-1 mt-0.5">
-                  "{chartMetrics.peakItem.title}" • SKU: {chartMetrics.peakItem.productFeatured || 'Bali Kintamani'}
-                </p>
-              </div>
-            </div>
+          {/* Bar Chart Representation */}
+          <div className="h-56 flex items-end gap-2 pt-6 pb-2 border-b border-slate-100 overflow-x-auto">
+            {currentItems.map((item, idx) => {
+              const maxVal = Math.max(
+                ...currentItems.map((c) =>
+                  activeMetricChart === 'reach'
+                    ? c.reach
+                    : activeMetricChart === 'views'
+                    ? c.views
+                    : c.saves + c.shares
+                ),
+                1
+              );
 
-            <div className="flex items-center gap-4 text-[11px] text-slate-600">
-              <div>
-                <span>Rata-Rata Akun: </span>
-                <strong className="text-slate-900 font-mono">
-                  {activeMetricChart === 'engagement'
-                    ? formatPercent(chartMetrics.avgVal)
-                    : formatNumber(Math.round(chartMetrics.avgVal))}
-                </strong>
-              </div>
-              <button
-                onClick={() => setSelectedChartItem(chartMetrics.peakItem)}
-                className="text-xs font-bold text-[#0e4380] hover:underline"
-              >
-                Lihat Naskah & Hook
-              </button>
-            </div>
-          </div>
-        )}
+              const currentVal =
+                activeMetricChart === 'reach'
+                  ? item.reach
+                  : activeMetricChart === 'views'
+                  ? item.views
+                  : item.saves + item.shares;
 
-        {/* Interactive Bar Chart Representation */}
-        <div className="relative pt-6">
-          {/* Average Benchmark Dashed Line */}
-          {chartMetrics.avgVal > 0 && chartMetrics.maxVal > 0 && (
-            <div
-              className="absolute left-0 right-0 border-b border-dashed border-slate-300 pointer-events-none z-10 flex items-center justify-end pr-2"
-              style={{
-                bottom: `${Math.min(Math.round((chartMetrics.avgVal / chartMetrics.maxVal) * 180) + 30, 200)}px`,
-              }}
-            >
-              <span className="text-[9px] font-bold text-slate-600 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-slate-200">
-                Rata-rata: {activeMetricChart === 'engagement' ? formatPercent(chartMetrics.avgVal) : formatNumber(Math.round(chartMetrics.avgVal))}
-              </span>
-            </div>
-          )}
-
-          <div className="h-60 flex items-end gap-2.5 pb-2 border-b border-slate-200 overflow-x-auto">
-            {chartItems.map((item, idx) => {
-              const currentVal = chartMetrics.getVal(item);
-              const heightPct = Math.max(Math.round((currentVal / chartMetrics.maxVal) * 100), 8);
-              const isSelected = selectedChartItem?.id === item.id || selectedChartItem?.title === item.title;
+              const heightPct = Math.max(Math.round((currentVal / maxVal) * 100), 8);
 
               return (
                 <div
                   key={item.id || idx}
-                  onClick={() => setSelectedChartItem(item)}
-                  className={`flex-1 min-w-[42px] flex flex-col items-center gap-1 group relative cursor-pointer transition-all ${
-                    isSelected ? 'scale-105' : 'hover:scale-102'
-                  }`}
+                  className="flex-1 min-w-[38px] flex flex-col items-center gap-1 group relative cursor-pointer"
                 >
                   {/* Tooltip */}
-                  <div className="absolute -top-16 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity bg-slate-900 text-white text-[10px] p-2 rounded shadow-xl z-30 whitespace-nowrap">
-                    <p className="font-bold truncate max-w-[180px]">{item.title}</p>
-                    <p className="text-amber-300 font-mono">
-                      {activeMetricChart.toUpperCase()}: {activeMetricChart === 'engagement' ? formatPercent(currentVal) : formatNumber(currentVal)}
-                    </p>
-                    <p className="text-slate-300 text-[9px] mt-0.5">
-                      {item.platform.toUpperCase()} • {item.publishDate}
+                  <div className="absolute -top-14 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity bg-slate-900 text-white text-[10px] p-2 rounded shadow-lg z-20 whitespace-nowrap">
+                    <p className="font-bold truncate max-w-[150px]">{item.title}</p>
+                    <p>
+                      {activeMetricChart.toUpperCase()}: {formatNumber(currentVal)} • {item.platform}
                     </p>
                   </div>
 
-                  {/* Value callout above bar for prominent items */}
-                  {heightPct > 35 && (
-                    <span className="text-[9px] font-mono font-bold text-slate-600 mb-0.5">
-                      {activeMetricChart === 'engagement'
-                        ? formatPercent(currentVal)
-                        : formatNumber(currentVal)}
-                    </span>
-                  )}
-
-                  {/* Bar */}
                   <div
-                    className={`w-full rounded-t-xl transition-all duration-300 ${
+                    className={`w-full rounded-t-lg transition-all duration-300 group-hover:opacity-80 ${
                       item.platform === 'instagram'
-                        ? isSelected
-                          ? 'bg-gradient-to-t from-pink-700 to-rose-500 ring-2 ring-pink-500 shadow-md'
-                          : 'bg-gradient-to-t from-[#0e4380] to-[#1e6ac5] group-hover:from-pink-600 group-hover:to-rose-500'
-                        : isSelected
-                        ? 'bg-gradient-to-t from-amber-600 to-yellow-400 ring-2 ring-amber-500 shadow-md'
-                        : 'bg-gradient-to-t from-[#dab553] to-[#ffe58f] group-hover:from-amber-600 group-hover:to-yellow-400'
+                        ? 'bg-gradient-to-t from-[#0e4380] to-[#1b5ca9]'
+                        : 'bg-gradient-to-t from-[#dab553] to-[#ffefa2]'
                     }`}
                     style={{ height: `${heightPct}%` }}
                   ></div>
-
-                  {/* Date label */}
-                  <span className="text-[9px] font-mono text-slate-500 truncate max-w-[40px]">
+                  <span className="text-[9px] text-slate-400 truncate max-w-[36px]">
                     {item.publishDate.slice(-5)}
                   </span>
                 </div>
@@ -1114,469 +851,58 @@ export const DashboardView: React.FC<{
             })}
           </div>
 
-          {/* Chart Legend & Legend Info */}
-          <div className="flex flex-wrap items-center justify-between text-xs text-slate-500 pt-3 gap-3">
-            <div className="flex items-center gap-5">
-              <span className="flex items-center gap-1.5 font-medium">
-                <span className="w-3 h-3 rounded bg-[#0e4380]"></span>
-                <span>Instagram Reels ({chartItems.filter(c => c.platform === 'instagram').length})</span>
+          <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+            <div className="flex items-center gap-4">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded bg-[#0e4380]"></span> Instagram
               </span>
-              <span className="flex items-center gap-1.5 font-medium">
-                <span className="w-3 h-3 rounded bg-[#dab553]"></span>
-                <span>TikTok Video ({chartItems.filter(c => c.platform === 'tiktok').length})</span>
-              </span>
-              <span className="flex items-center gap-1.5 text-slate-400 font-mono text-[11px]">
-                --- Garis Putus-Putus: Nilai Rata-rata
+              <span className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded bg-[#dab553]"></span> TikTok
               </span>
             </div>
-
-            <span className="text-[11px] text-slate-500 italic">
-              Klik pada batang konten mana pun untuk menginspeksi metrik lengkap di bawah
-            </span>
+            <span>Diurutkan berdasarkan tanggal tayang</span>
           </div>
         </div>
 
-        {/* Selected Content Inspector Drawer */}
-        {selectedChartItem && (
-          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3 mt-2">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/70 pb-2">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-[#00224a] text-white flex items-center justify-center font-bold text-xs">
-                  #
-                </span>
-                <h4 className="text-sm font-bold text-slate-900">{selectedChartItem.title}</h4>
-                <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-slate-200 text-slate-800">
-                  {selectedChartItem.platform}
-                </span>
-              </div>
-              <button
-                onClick={() => setSelectedChartItem(null)}
-                className="text-xs text-slate-400 hover:text-slate-700 underline"
-              >
-                Tutup Detail
-              </button>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-white border border-slate-200">
-                <span className="text-[10px] text-slate-500 block">Views</span>
-                <span className="font-bold text-slate-900 font-mono text-sm">
-                  {formatNumber(selectedChartItem.views)}
-                </span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-white border border-slate-200">
-                <span className="text-[10px] text-slate-500 block">Reach</span>
-                <span className="font-bold text-slate-900 font-mono text-sm">
-                  {formatNumber(selectedChartItem.reach)}
-                </span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-white border border-slate-200">
-                <span className="text-[10px] text-slate-500 block">Saves (Koleksi)</span>
-                <span className="font-bold text-[#0e4380] font-mono text-sm">
-                  {formatNumber(selectedChartItem.saves)}
-                </span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-white border border-slate-200">
-                <span className="text-[10px] text-slate-500 block">Shares (Viral)</span>
-                <span className="font-bold text-blue-600 font-mono text-sm">
-                  {formatNumber(selectedChartItem.shares)}
-                </span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-white border border-slate-200">
-                <span className="text-[10px] text-slate-500 block">Link Clicks</span>
-                <span className="font-bold text-indigo-700 font-mono text-sm">
-                  {formatNumber(selectedChartItem.linkClicks)}
-                </span>
-              </div>
-              <div className="p-2.5 rounded-xl bg-white border border-slate-200">
-                <span className="text-[10px] text-slate-500 block">Eng. Rate</span>
-                <span className="font-bold text-emerald-700 font-mono text-sm">
-                  {formatPercent(calculateMetrics(selectedChartItem).engagementByReach)}
-                </span>
-              </div>
-            </div>
-
-            <div className="text-xs text-slate-600 bg-white p-3 rounded-xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
-              <div className="space-y-0.5">
-                <span className="text-[11px] font-semibold text-slate-500 block">
-                  SKU Ditonjolkan: <strong>{selectedChartItem.productFeatured || 'Bali Kintamani'}</strong> • Pilar: <strong>{selectedChartItem.pillar}</strong> • Funnel: <strong>{selectedChartItem.funnelStage}</strong>
-                </span>
-                {selectedChartItem.hook && (
-                  <p className="text-[11px] text-slate-700 italic">
-                    Hook 3 Detik: "{selectedChartItem.hook}"
-                  </p>
-                )}
-              </div>
-              <button
-                onClick={() => onNavigateTab('analyst')}
-                className="px-3 py-1.5 rounded-lg bg-[#00224a] text-white font-bold text-xs hover:bg-[#0e4380] transition-colors"
-              >
-                Minta AI Bedah Konten Ini
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* 2. VISUAL FUNNEL FLOW PIPELINE (TOFU ➔ MOFU ➔ BOFU) */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Top Performing Content Ranking */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-indigo-600" />
-              <h3 className="text-base font-bold text-slate-900">
-                Grafik Corong Konversi (Funnel Pipeline: TOFU ➔ MOFU ➔ BOFU)
-              </h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-bold text-slate-900">Konten Terbaik (Top Ranking)</h3>
+              <span className="text-[11px] font-semibold text-[#0e4380]">Skor Holistik</span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Alur perpindahan audiens dari penonton umum (TOFU) menjadi pecinta kopi teredukasi (MOFU) dan pembeli biji kopi (BOFU).
-            </p>
-          </div>
-          <span className="text-xs font-semibold px-3 py-1 rounded-full bg-indigo-50 text-indigo-900 border border-indigo-200">
-            Kepatuhan 80/20 Deluxe Coffee
-          </span>
-        </div>
-
-        {/* 3-Stage Visual Funnel Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-          {/* TOFU Card */}
-          <div className="rounded-2xl p-4 bg-gradient-to-br from-sky-50 to-blue-50 border border-sky-200 flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-sky-800">
-                  Tahap 1: Top of Funnel
-                </span>
-                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-sky-200 text-sky-900">
-                  {funnelAnalytics.tofuPct}% Views
-                </span>
-              </div>
-              <h4 className="text-sm font-bold text-slate-900">
-                Awareness & Relatable Malam
-              </h4>
-              <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                Menangkap audiens umum yang lelah kerja lewat humor relatable & relaksasi secangkir kopi malam di rumah.
-              </p>
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-sky-200/80 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Total Konten:</span>
-                <strong className="text-slate-900 font-mono">{funnelAnalytics.stages.TOFU.count} Konten</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Total Tayangan:</span>
-                <strong className="text-slate-900 font-mono">{formatNumber(funnelAnalytics.stages.TOFU.views)} Views</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Jangkauan (Reach):</span>
-                <strong className="text-slate-900 font-mono">{formatNumber(funnelAnalytics.stages.TOFU.reach)} Akun</strong>
-              </div>
-            </div>
-
-            <div className="p-2 bg-white/80 rounded-xl text-[10px] text-sky-900 font-semibold border border-sky-200">
-              💡 Fungsi: Membuka keran traffic baru tanpa membicarakan hal teknis rumit.
-            </div>
-          </div>
-
-          {/* MOFU Card */}
-          <div className="rounded-2xl p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-indigo-200 flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-800">
-                  Tahap 2: Middle of Funnel
-                </span>
-                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-indigo-200 text-indigo-950">
-                  {funnelAnalytics.mofuPct}% Views
-                </span>
-              </div>
-              <h4 className="text-sm font-bold text-slate-900">
-                Edukasi Seduh & Solusi Rasa (80%)
-              </h4>
-              <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                Membongkar masalah seduh V60 asam/pahit, trik air galon, grind size, dan sertifikasi roaster Bali.
-              </p>
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-indigo-200/80 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Total Konten:</span>
-                <strong className="text-slate-900 font-mono">{funnelAnalytics.stages.MOFU.count} Konten</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Total Tayangan:</span>
-                <strong className="text-slate-900 font-mono">{formatNumber(funnelAnalytics.stages.MOFU.views)} Views</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Saves (Koleksi Resep):</span>
-                <strong className="text-indigo-900 font-mono">{formatNumber(funnelAnalytics.stages.MOFU.saves)} Simpan</strong>
-              </div>
-            </div>
-
-            <div className="p-2 bg-white/80 rounded-xl text-[10px] text-indigo-900 font-semibold border border-indigo-200">
-              ⭐️ Juara Edukasi: Save rate tertinggi (8.1%) karena audiens butuh resep praktis.
-            </div>
-          </div>
-
-          {/* BOFU Card */}
-          <div className="rounded-2xl p-4 bg-gradient-to-br from-amber-50 to-yellow-50 border border-amber-200 flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
-                  Tahap 3: Bottom of Funnel
-                </span>
-                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-amber-200 text-amber-950">
-                  {funnelAnalytics.bofuPct}% Views
-                </span>
-              </div>
-              <h4 className="text-sm font-bold text-slate-900">
-                Fresh Roast & Penjualan Beans (20%)
-              </h4>
-              <p className="text-[11px] text-slate-600 mt-1 leading-relaxed">
-                Penawaran tester box, jaminan roast-to-order tanggal sangrai hari ini, dan soft CTA via DM/Bio.
-              </p>
-            </div>
-
-            <div className="space-y-2 pt-2 border-t border-amber-200/80 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Total Konten:</span>
-                <strong className="text-slate-900 font-mono">{funnelAnalytics.stages.BOFU.count} Konten</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Total Tayangan:</span>
-                <strong className="text-slate-900 font-mono">{formatNumber(funnelAnalytics.stages.BOFU.views)} Views</strong>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Tautan / Link Clicks:</span>
-                <strong className="text-amber-950 font-mono">{currentStats.totalLinkClicks} Klik</strong>
-              </div>
-            </div>
-
-            <div className="p-2 bg-white/80 rounded-xl text-[10px] text-amber-900 font-semibold border border-amber-200">
-              🎯 Fokus Tindakan: Pasang sticky keyword "Ketik RESEP di komen" untuk auto-DM.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. COFFEE SINGLE ORIGIN SKU & FORMAT BREAKDOWN DUAL GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Coffee Single Origin / SKU Performance Leaderboard */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <Coffee className="w-5 h-5 text-[#dab553]" />
-                <h3 className="text-base font-bold text-slate-900">
-                  Performa Biji Kopi (Single Origin SKU Leaderboard)
-                </h3>
-              </div>
-              <span className="text-xs text-slate-400">Peringkat Views</span>
-            </div>
-            <p className="text-xs text-slate-500 mb-4">
-              Varian kopi mana yang paling banyak menarik views dan disimpan resepnya oleh audiens?
+            <p className="text-xs text-slate-500 mb-3">
+              Kombinasi Reach, Save Rate (koleksi resep), dan Share Rate.
             </p>
 
-            <div className="space-y-3.5">
-              {skuAnalytics.list.map((sku, idx) => {
-                const pct = Math.max(Math.round((sku.views / skuAnalytics.maxSkuViews) * 100), 10);
+            <div className="space-y-3">
+              {topContent.map((item, idx) => {
+                const metrics = calculateMetrics(item);
                 return (
-                  <div key={idx} className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
+                  <div
+                    key={item.id || idx}
+                    className="p-3 rounded-xl border border-slate-100 hover:border-slate-300 bg-slate-50/50 hover:bg-slate-50 transition-all text-xs"
+                  >
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-[#00224a] text-[#dab553] text-[10px] font-bold flex items-center justify-center">
-                          {idx + 1}
+                        <span className="w-5 h-5 rounded-full bg-[#00224a] text-[#dab553] text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                          #{idx + 1}
                         </span>
-                        <span className="font-semibold text-slate-800">{sku.name}</span>
-                        <span className="text-[10px] text-slate-400">({sku.count} post)</span>
+                        <span className="font-semibold text-slate-800 line-clamp-1">
+                          {item.title}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-3 font-mono">
-                        <span className="font-bold text-[#0e4380]">{formatNumber(sku.views)} Views</span>
-                        <span className="text-slate-500 text-[11px]">{sku.saves} saves</span>
-                      </div>
+                      <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
+                        {item.platform}
+                      </span>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                      <div
-                        className={`h-2.5 rounded-full transition-all ${
-                          idx === 0
-                            ? 'bg-gradient-to-r from-[#0e4380] to-[#dab553]'
-                            : idx === 1
-                            ? 'bg-[#0e4380]'
-                            : 'bg-slate-400'
-                        }`}
-                        style={{ width: `${pct}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
-          <div className="pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
-            <span>Juara Utama: <strong>Bali Kintamani</strong> (Memiliki rasa jeruk mandarin khas Bali yang kuat).</span>
-            <button onClick={() => onNavigateTab('database')} className="text-[#0e4380] font-bold hover:underline">
-              Cek Database
-            </button>
-          </div>
-        </div>
-
-        {/* Best Posting Time & Format Analytics */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <Clock className="w-5 h-5 text-indigo-600" />
-                <h3 className="text-base font-bold text-slate-900">
-                  Waktu Terbaik Posting (Prime Time) & Format Konten
-                </h3>
-              </div>
-              <span className="text-xs font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                WITA (Bali)
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mb-4">
-              Berdasarkan analisis jam tayang dan format konten video pendek Deluxe Coffee.
-            </p>
-
-            {/* Time Window Bars */}
-            <div className="space-y-2.5">
-              <div className="p-3 rounded-xl bg-gradient-to-r from-emerald-50 to-slate-50 border border-emerald-200 flex items-center justify-between text-xs">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 font-bold text-emerald-900">
-                    <span>🌙 Malam Hari (18.30 - 21.00 WITA)</span>
-                    <span className="px-1.5 py-0.2 rounded bg-emerald-200 text-emerald-950 text-[10px]">Prime Time #1</span>
-                  </div>
-                  <p className="text-[11px] text-emerald-700">
-                    Menghasilkan rata-rata 3.2x lebih banyak views. Audiens santai istirahat di rumah.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-bold font-mono text-emerald-900">~2.400</span>
-                  <span className="text-[10px] text-slate-500 block">Avg Reach/Post</span>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-800">
-                    <span>☀️ Siang Hari (12.00 - 13.30 WITA)</span>
-                    <span className="px-1.5 py-0.2 rounded bg-slate-200 text-slate-700 text-[10px]">Moderate</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    Cocok untuk resep kopi praktis & ice latte penyemangat kerja kantor.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-bold font-mono text-slate-800">~980</span>
-                  <span className="text-[10px] text-slate-500 block">Avg Reach/Post</span>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
-                <div className="space-y-0.5">
-                  <div className="flex items-center gap-1.5 font-bold text-slate-700">
-                    <span>🌅 Pagi Hari (07.00 - 09.30 WITA)</span>
-                    <span className="px-1.5 py-0.2 rounded bg-amber-100 text-amber-800 text-[10px]">Rendah</span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">
-                    Hindari posting edukasi panjang; audiens sedang di perjalanan / rapat pagi.
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span className="text-sm font-bold font-mono text-slate-700">~380</span>
-                  <span className="text-[10px] text-slate-500 block">Avg Reach/Post</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Content Format Comparison Mini Grid */}
-            <div className="grid grid-cols-2 gap-2 pt-2 text-xs">
-              <div className="p-2.5 rounded-xl bg-purple-50/70 border border-purple-100">
-                <span className="text-[10px] font-bold text-purple-900 block">Reels Video</span>
-                <span className="font-bold text-slate-800">72% Total Tayangan</span>
-                <p className="text-[10px] text-slate-500 mt-0.5">Algoritma Explore kuat</p>
-              </div>
-              <div className="p-2.5 rounded-xl bg-amber-50/70 border border-amber-100">
-                <span className="text-[10px] font-bold text-amber-900 block">Carousel Edukasi</span>
-                <span className="font-bold text-slate-800">8.4% Save Rate</span>
-                <p className="text-[10px] text-slate-500 mt-0.5">Paling sering disimpan</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-3 border-t border-slate-100 text-xs text-slate-500 flex items-center justify-between">
-            <span>Rekomendasi Jadwal: Posting video di jam <strong>19.00 WITA</strong> setiap Selasa, Kamis, Sabtu.</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. TOP PERFORMING RANKING & HOLISTIC SCORE */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <Award className="w-5 h-5 text-[#dab553]" />
-              <h3 className="text-base font-bold text-slate-900">
-                Peringkat 5 Konten Paling Berdampak (Top Performing Content)
-              </h3>
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Dihitung berdasarkan Skor Holistik (Reach x Save Rate x Share Velocity).
-            </p>
-          </div>
-          <button
-            onClick={() => onNavigateTab('database')}
-            className="text-xs font-bold text-[#0e4380] hover:underline flex items-center gap-1"
-          >
-            <span>Buka Seluruh Database Konten</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {topContent.map((item, idx) => {
-            const metrics = calculateMetrics(item);
-            return (
-              <div
-                key={item.id || idx}
-                className="p-3.5 rounded-2xl border border-slate-200 hover:border-[#0e4380] bg-slate-50/60 hover:bg-white transition-all text-xs flex flex-col justify-between space-y-2 shadow-sm"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-1 mb-1.5">
-                    <span className="w-5 h-5 rounded-full bg-[#00224a] text-[#dab553] text-[10px] font-bold flex items-center justify-center">
-                      #{idx + 1}
-                    </span>
-                    <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded bg-slate-200 text-slate-700">
-                      {item.platform}
-                    </span>
-                  </div>
-                  <h5 className="font-bold text-slate-900 line-clamp-2 leading-snug">
-                    {item.title}
-                  </h5>
-                  <span className="text-[10px] text-slate-500 block mt-1">
-                    {item.productFeatured || 'Bali Kintamani'}
-                  </span>
-                </div>
-
-                <div className="pt-2 border-t border-slate-200/70 space-y-1 text-[11px]">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Views:</span>
-                    <strong className="text-slate-900 font-mono">{formatNumber(item.views)}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Saves:</span>
-                    <strong className="text-[#0e4380] font-mono">{formatNumber(item.saves)}</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Eng Rate:</span>
-                    <strong className="text-emerald-700 font-mono">{formatPercent(metrics.engagementByReach)}</strong>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-200/60 text-[11px] text-slate-600">
+                      <span>Reach: {formatNumber(item.reach)}</span>
+                      <span className="font-semibold text-[#0e4380]">
+                        Saves: {formatNumber(item.saves)} ({formatPercent(metrics.saveRate)})
+                      </span>
+                      <span className="text-emerald-700 font-semibold">
                         Eng: {formatPercent(metrics.engagementByReach)}
                       </span>
                     </div>

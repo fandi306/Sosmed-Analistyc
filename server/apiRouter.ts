@@ -4,12 +4,6 @@ import { Type } from '@google/genai';
 
 export const apiRouter = Router();
 
-export const withTimeout = <T>(promise: Promise<T>, ms = 7000): Promise<T> =>
-  Promise.race([
-    promise,
-    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('AI Request Timeout')), ms)),
-  ]);
-
 // 1. AI Content Analyst (General Analysis & Interactive Q&A)
 apiRouter.post('/gemini/analyst', async (req: Request, res: Response) => {
   try {
@@ -46,46 +40,15 @@ Berikan laporan terstruktur dengan bagian:
 7. Masalah Kritis & Peluang Terbuka
 8. Rekomendasi Rencana Aksi Konkret Minggu Depan`;
 
-    let text = '';
-    try {
-      const response = await withTimeout(
-        ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-          config: {
-            systemInstruction,
-          },
-        }),
-        7000
-      );
-      text = response.text || '';
-    } catch (aiErr: any) {
-      console.warn('AI Analyst fallback triggered:', aiErr.message);
-      text = `### Evaluasi Performa Eksekutif Deluxe Coffee Bali
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: prompt,
+      config: {
+        systemInstruction,
+      },
+    });
 
-1. **Ringkasan Performa Eksekutif**:
-   - Total konten aktif: ${analyticsData?.totalPosts || 28} postingan dengan akumulasi ${analyticsData?.totalViews ? analyticsData.totalViews.toLocaleString('id-ID') : '50.860'} tayangan.
-   - Puncak views diraih oleh Reels malam hari (*"Kalian udah setres belum?..."*) mencapai 35.403 views dan 121 shares.
-   - Instagram menjadi saluran konversi brand awareness utama, sedangkan TikTok menunjukkan potensi virality untuk topik santai & ASMR seduh.
-
-2. **Konten Terbaik (Best Performing)**:
-   - Topik relatable kelelahan kerja & ngopi santai malam mendominasi save rate dan reach (rasio save 3.8%).
-   - Edukasi perbandingan air seduhan (*"Uji Rasa 3 Jenis Air Galon pada Kopi Kintamani"*) mencatat 1.802 views dengan save rate 8.1% (koleksi resep sangat tinggi).
-
-3. **Diagnosa Masalah (Bottleneck)**:
-   - Product link clicks masih 0 pada mayoritas video karena link bio tidak ditegaskan secara visual di detik ke-45 atau komentar tersemat.
-   - Jam posting pagi hari (08.00 - 10.00 WITA) menghasilkan reach 60% lebih rendah dibanding jam 18.30 - 20.30 WITA.
-
-4. **Kepatuhan Strategi 80/20**:
-   - Kepatuhan berada di angka 82% Edukasi/Problem-Solving (TOFU/MOFU) dan 18% Penawaran Roast-to-order (BOFU). Ini adalah ritme yang sangat sehat untuk menjaga kredibilitas roastery specialty.
-
-5. **Rekomendasi Rencana Aksi Minggu Depan**:
-   - Replikasi hook relatable ke SKU Sulawesi Toraja & Flores Bajawa.
-   - Pasang sticky CTA: *"Ketik 'RESEP' di DM untuk panduan grind size beans Kintamani"*.
-   - Jadwalkan publishing di prime time 19.00 WITA.`;
-    }
-
-    res.json({ success: true, text });
+    res.json({ success: true, text: response.text || '' });
   } catch (error: any) {
     console.error('Error in /api/gemini/analyst:', error);
     res.status(500).json({ success: false, error: error.message || 'Terjadi kesalahan pada AI Analyst.' });
@@ -924,112 +887,16 @@ Kembalikan format JSON:
   ]
 }`;
 
-    let parsed: any = {};
-    try {
-      const response = await withTimeout(
-        ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-          config: {
-            systemInstruction: DELUXE_COFFEE_CONTEXT,
-            responseMimeType: 'application/json',
-          },
-        }),
-        7000
-      );
-      parsed = JSON.parse(response.text || '{}');
-    } catch (aiErr: any) {
-      console.warn('Decision Engine fallback triggered:', aiErr.message);
-      parsed = {
-        executiveDiagnosis: 'Performa konten berada pada momentum akselerasi dengan 50.860 views, namun konversi link pembelian masih tertahan karena CTA kurang tegas.',
-        overallHealthScore: 84,
-        mandates: [
-          {
-            id: 'mandate-1',
-            type: 'SCALE_WINNER',
-            title: 'Replikasi Formula Reels Relatable 35K Views ke SKU Kopi Baru',
-            priority: 'URGENT',
-            dataEvidence: 'Reels kelelahan kerja malam tembus 35.403 views dan 121 shares tanpa biaya iklan.',
-            rationale: 'Audiens merespons kuat konten santai yang memvalidasi stres kerja dengan solusi secangkir kopi segar di rumah.',
-            actionSteps: [
-              'Produksi 2 video dengan hook kelelahan malam hari serupa.',
-              'Gunakan SKU Sulawesi Toraja Sapan & Flores Bajawa.',
-              'Posting di jam 19.30 WITA saat audiens rileks di rumah.'
-            ],
-            recommendedBrief: {
-              title: 'Capek Seharian Lembur, Diselamatin V60 Sulawesi Toraja',
-              hook: 'Kalau jam segini kepala kamu udah ngebul karena kerjaan, tonton ini 30 detik.',
-              sku: 'Sulawesi Toraja Sapan Roast-to-Order',
-              funnelStage: 'TOFU',
-              pillar: 'Relatable',
-              cta: 'Simpan video ini buat nemenin istirahat kamu nanti malam.'
-            }
-          },
-          {
-            id: 'mandate-2',
-            type: 'FIX_LEAK',
-            title: 'Hentikan Kebocoran Traffic: Pasang Sticky DM Automation CTA',
-            priority: 'HIGH',
-            dataEvidence: 'Link clicks tercatat 0 pada 22 dari 28 konten terbit, meskipun views mencapai puluhan ribu.',
-            rationale: 'Penonton video pendek enggan keluar aplikasi untuk klik link bio. Menawarkan keyword otomatis via DM memangkas friksi.',
-            actionSteps: [
-              'Gunakan sticky on-screen text di detik ke-40: "Ketik RESEP di komen".',
-              'Sematkan pin komentar teratas dengan link langsung Tokopedia.',
-              'Siapkan quick reply otomatis berisi panduan gilingan beans Deluxe.'
-            ],
-            recommendedBrief: {
-              title: '3 Kesalahan Bikin Kopi V60 Kamu Rasanya Terlalu Asam',
-              hook: 'Kopi kamu rasanya asam kecut seperti cuka? 90% masalahnya ada di air ini.',
-              sku: 'Bali Kintamani Washed',
-              funnelStage: 'MOFU',
-              pillar: 'Problem Solution',
-              cta: 'Ketik "RESEP" di kolom komentar, kami kirim panduan rasio dan grind size-nya gratis!'
-            }
-          },
-          {
-            id: 'mandate-3',
-            type: 'SEIZE_GAP',
-            title: 'Eksploitasi Celah Roastery Bali: Edukasi Seduh Rumahan vs Estetika Kafe',
-            priority: 'HIGH',
-            dataEvidence: 'Expat Roasters dan Hungry Bird 85% memposting estetika kafe turis dan latte art dine-in.',
-            rationale: 'Kompetitor mengabaikan ratusan ribu pecinta kopi di rumah yang butuh beans segar lokal dengan roast-to-order yang terjamin fresh.',
-            actionSteps: [
-              'Tegaskan positioning: "Roast-to-Order Bali: Kopi baru disangrai setelah kamu checkout".',
-              'Buat konten bedah perbedaan beans segar vs beans komersial supermarket.'
-            ],
-            recommendedBrief: {
-              title: 'Kenapa Biji Kopi Supermarket Harganya Murah Tapi Bikin Kembung?',
-              hook: 'Pernah kepikiran nggak kenapa biji kopi di supermarket tahan 2 tahun tapi rasanya pahit gosong?',
-              sku: 'Java Ijen Anaerobic',
-              funnelStage: 'MOFU',
-              pillar: 'Education',
-              cta: 'Cek tanggal sangrai kopi kamu. Kalau mau yang fresh roast hari ini, link ada di bio.'
-            }
-          },
-          {
-            id: 'mandate-4',
-            type: 'FUNNEL_STRATEGY',
-            title: 'Kunci Disiplin Strategi 80:20 (80% Problem Solving, 20% Hard Selling)',
-            priority: 'MEDIUM',
-            dataEvidence: 'Kepatuhan saat ini 82% TOFU/MOFU dan 18% BOFU, menghasilkan rasio engagement konsisten di atas 5%.',
-            rationale: 'Menjual langsung di awal akan merusak watch time algoritma. Pertahankan edukasi pemecahan masalah agar trust audiens terjaga.',
-            actionSteps: [
-              'Batasi konten promo diskon/bundle maksimal 1 kali setiap 5 konten.',
-              'Gunakan soft selling berbasis rekomendasi roaster bersertifikat SCA.'
-            ],
-            recommendedBrief: {
-              title: 'Paket Tester 3 Origin Paling Ramah Buat Lambung',
-              hook: 'Pengen ngopi manual brew tiap hari tapi lambung sering protes? Ini solusinya.',
-              sku: 'Tasting Box: Kintamani, Toraja, Bajawa',
-              funnelStage: 'BOFU',
-              pillar: 'Bundle',
-              cta: 'Cuma tersedia 50 box roast segar batch minggu ini. Amankan via link bio sebelum kehabisan.'
-            }
-          }
-        ]
-      };
-    }
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: prompt,
+      config: {
+        systemInstruction: DELUXE_COFFEE_CONTEXT,
+        responseMimeType: 'application/json',
+      },
+    });
 
+    const parsed = JSON.parse(response.text || '{}');
     res.json({ success: true, ...parsed });
   } catch (error: any) {
     console.error('Error in /api/gemini/decision-engine:', error);
@@ -1077,60 +944,16 @@ Kembalikan format JSON:
   ]
 }`;
 
-    let parsed: any = {};
-    try {
-      const response = await withTimeout(
-        ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-          config: {
-            systemInstruction: DELUXE_COFFEE_CONTEXT,
-            responseMimeType: 'application/json',
-          },
-        }),
-        7000
-      );
-      parsed = JSON.parse(response.text || '{}');
-    } catch (aiErr: any) {
-      console.warn('Competitor insights fallback triggered:', aiErr.message);
-      parsed = {
-        summary: 'Kompetitor roastery ternama di Bali (Expat, Hungry Bird, Seniman, Revolver) sangat dominan pada estetika kafe turis dan latte art dine-in. Mereka meninggalkan kekosongan besar pada edukasi troubleshooting seduh rumahan dan jaminan roast-to-order segar yang terjangkau bagi konsumen Indonesia.',
-        competitorGaps: [
-          {
-            gapName: 'Kekosongan Edukasi Troubleshooting Seduh Rumahan',
-            competitorWeakness: 'Expat Roasters dan Hungry Bird jarang membahas mengapa seduhan kopi di rumah gagal atau terasa terlalu asam/pahit.',
-            deluxeAdvantage: 'Deluxe Coffee memiliki sertifikasi SCA dan fokus membongkar trik air galon, grind size, dan resep rasio harian.',
-            suggestedContentTopic: 'Uji Coba 3 Jenis Air Galon untuk Seduh Kopi Kintamani di Rumah',
-            potentialReach: 'Sangat Tinggi'
-          },
-          {
-            gapName: 'Jaminan Freshness: Roast-to-Order vs Stok Gudang Supermarket',
-            competitorWeakness: 'Brand nasional (Tanamera, Anomali) sering memasok kopi ke supermarket dengan tanggal sangrai yang sudah 3-6 bulan lalu.',
-            deluxeAdvantage: 'Deluxe Coffee menyangrai biji kopi hanya setelah pesanan masuk (Roast-to-Order) dari roastery Bali.',
-            suggestedContentTopic: 'Kenapa Biji Kopi Berumur Lebih dari 2 Bulan Rasanya Tinggal Pahit Gosong?',
-            potentialReach: 'Tinggi'
-          },
-          {
-            gapName: 'Penyelamatan Rasa Kopi Tanpa Gula & Ramah Lambung',
-            competitorWeakness: 'Revolver dan Anomali fokus pada minuman manis seasonal & menu makanan kafe.',
-            deluxeAdvantage: 'Deluxe mengedukasi single-origin natural process (Kintamani & Toraja) yang punya rasa manis buah alami tanpa tambahan gula.',
-            suggestedContentTopic: 'Cara Minum Kopi Hitam Tanpa Pahit dan Aman di Lambung Sensitif',
-            potentialReach: 'Sangat Tinggi'
-          }
-        ],
-        strategicCounterTactics: [
-          {
-            tactic: 'Audience Hijacking via Edukasi Relatable',
-            execution: 'Targetkan penonton yang sering mengeluh kopi kafe terlalu mahal tapi bingung cara seduh enak di rumah dengan format video 45 detik solutif.'
-          },
-          {
-            tactic: 'Positioning "The Coffee You Stop Searching For"',
-            execution: 'Fokuskan pesan bahwa Deluxe adalah pelabuhan terakhir pencarian biji kopi single origin berkualitas dengan harga rasional untuk daily driver.'
-          }
-        ]
-      };
-    }
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: prompt,
+      config: {
+        systemInstruction: DELUXE_COFFEE_CONTEXT,
+        responseMimeType: 'application/json',
+      },
+    });
 
+    const parsed = JSON.parse(response.text || '{}');
     res.json({ success: true, ...parsed });
   } catch (error: any) {
     console.error('Error in /api/gemini/competitor-insights:', error);
@@ -1193,93 +1016,16 @@ Kembalikan format JSON:
   "pinnedCommentCopy": "string"
 }`;
 
-    let parsed: any = {};
-    try {
-      const response = await withTimeout(
-        ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-          config: {
-            systemInstruction: DELUXE_COFFEE_CONTEXT,
-            responseMimeType: 'application/json',
-          },
-        }),
-        7000
-      );
-      parsed = JSON.parse(response.text || '{}');
-    } catch (aiErr: any) {
-      console.warn('Production brief fallback triggered:', aiErr.message);
-      parsed = {
-        briefTitle: title || 'Rahasia Seduh Single Origin Kintamani di Rumah Anti Asam Kecut',
-        objective: objective || 'Edukasi Problem-Solving & Konversi Pembelian Beans Roast-to-Order',
-        targetAudience: 'Pecinta kopi seduh manual di rumah (home brewer) & pekerja kantor yang butuh daily cup berkualitas di Bali dan kota besar.',
-        audienceProblem: 'Kopi V60 buatan rumah sering terasa terlalu kecut menusuk atau pahit gosong karena air dan grind size yang salah.',
-        singleOriginFeatured: sku || 'Bali Kintamani Single Origin (Roast-to-Order)',
-        funnelStage: funnelStage || 'MOFU',
-        pillar: 'Problem Solution & Education',
-        contentFormat: 'Reels / TikTok Video (9:16 Vertical)',
-        estimatedDuration: '45 - 55 Detik',
-        hooks: [
-          {
-            type: 'Contrarian',
-            onScreenText: 'BERHENTI SEDUH KOPI PAKAI AIR MENDIDIH 100°C!',
-            spokenHook: 'Kalau kopi V60 kamu rasanya selalu asam kecut atau pahit gosong, jangan buru-buru salahin biji kopinya.'
-          },
-          {
-            type: 'Relatable',
-            onScreenText: 'Udah beli beans mahal tapi rasanya hambar?',
-            spokenHook: 'Sering nggak sih, beli beans specialty mahal tapi pas diseduh di rumah rasanya kok kayak air cucian gelas?'
-          }
-        ],
-        fullScript: `[SCENE 1 - 00:00-00:03] Close-up cangkir kopi dituangkan, teks on-screen tebal: "BERHENTI SEDUH KOPI DENGAN AIR MENDIDIH".\n[SCENE 2 - 00:03-00:15] Roaster memegang kettle dan thermometer digital. Roaster: "Air mendidih 100 derajat bikin rasa kopi kebakar dan ekstrak zat pahit yang kasar. Untuk beans specialty seperti Bali Kintamani ini, suhu idealnya di 90 sampai 92 derajat celcius."\n[SCENE 3 - 00:15-00:30] Roaster menuang air ke dripper V60, memperlihatkan blooming busa kopi segar mengembang indah (ASMR suara air). Roaster: "Lihat busanya ngembang? Ini tanda biji kopi baru disangrai segar beberapa hari lalu. Bukan biji kopi yang udah setahun nongkrong di rak supermarket."\n[SCENE 4 - 00:30-00:45] Barista mencicipi kopi sambil tersenyum puas. Roaster: "Hasilnya? Rasa manis jeruk mandarin khas Kintamani keluar seimbang, asamnya segar dan aromatik di tenggorokan."\n[SCENE 5 - 00:45-00:52] Tampilan kemasan foil Deluxe Coffee Bali Kintamani dengan stempel tanggal sangrai hari ini. Roaster: "Ketik 'RESEP' di kolom komentar sekarang, kami kirim panduan gramasi lengkapnya ke DM kamu!"`,
-        scenes: [
-          {
-            sceneNumber: 1,
-            timeRange: '00:00 - 00:03',
-            cameraAngle: 'Extreme Close-Up Macro',
-            visualAction: 'Kopi hitam jernih mengalir ke cangkir bening dengan lighting hangat studio.',
-            onScreenText: 'STOP SEDUH DENGAN AIR 100°C 🛑',
-            audioNarration: 'Kalau kopi V60 kamu rasanya asam kecut kayak cuka, jangan salahin biji kopinya dulu.'
-          },
-          {
-            sceneNumber: 2,
-            timeRange: '00:03 - 00:16',
-            cameraAngle: 'Medium Eye-Level Shot',
-            visualAction: 'Roaster Deluxe Coffee menunjukkan kettle leher angsa dan termometer 91°C.',
-            onScreenText: 'Suhu Ideal: 90° - 92°C 🌡️',
-            audioNarration: 'Air mendidih 100 derajat langsung membakar aroma manis alami kopi. Cukup tunggu 1 menit setelah mendidih sampai 91 derajat.'
-          },
-          {
-            sceneNumber: 3,
-            timeRange: '00:16 - 00:32',
-            cameraAngle: 'Overhead 45° Dripper Shot',
-            visualAction: 'Tuangan air pertama (blooming) menghasilkan kubah crema busa kopi segar yang harum.',
-            onScreenText: 'Fresh Roast-to-Order Bloom ✨',
-            audioNarration: 'Dan pastikan beans kamu segar. Biji kopi Deluxe Coffee baru disangrai saat kamu pesan, bukan stok gudang 6 bulan lalu.'
-          },
-          {
-            sceneNumber: 4,
-            timeRange: '00:32 - 00:46',
-            cameraAngle: 'Medium Close-Up Talent Sip',
-            visualAction: 'Talent menyeruput seduhan kopi dengan ekspresi segar dan rileks.',
-            onScreenText: 'Manis Jeruk Mandarin Kintamani 🍊',
-            audioNarration: 'Hasilnya balance banget: rasa manis jeruk mandarin khas Bali Kintamani keluar lembut tanpa bikin lambung kaget.'
-          },
-          {
-            sceneNumber: 5,
-            timeRange: '00:46 - 00:53',
-            cameraAngle: 'Product Hero Shot (Kemasan Deluxe)',
-            visualAction: 'Kemasan Deluxe Coffee Bali Kintamani dengan cap Roast Date hari ini, pointer klik panah.',
-            onScreenText: 'Ketik "RESEP" di Komen 📩',
-            audioNarration: 'Ketik "RESEP" di komentar, kami kirim panduan seduh dan grind size-nya gratis ke DM kamu!'
-          }
-        ],
-        soundAndMood: 'Lo-Fi acoustic chill beats dengan efek suara renyah ASMR tuangan air dan gemercik kopi.',
-        ctaDirective: 'Wajib sematkan pin komentar di urutan teratas dengan teks: "Ketik RESEP di bawah buat yang mau file PDF resep rasio 1:15 ini ya!"',
-        pinnedCommentCopy: 'Siapa di sini yang suka seduh Kintamani juga? Ketik "RESEP" di bawah ya, nanti min-Deluxe kirimkan tabel gramasi lengkapnya via DM! ☕✨'
-      };
-    }
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash',
+      contents: prompt,
+      config: {
+        systemInstruction: DELUXE_COFFEE_CONTEXT,
+        responseMimeType: 'application/json',
+      },
+    });
 
+    const parsed = JSON.parse(response.text || '{}');
     res.json({ success: true, brief: parsed });
   } catch (error: any) {
     console.error('Error in /api/gemini/production-brief:', error);
@@ -1353,17 +1099,14 @@ Format balasan JSON:
 
     let parsed: any = {};
     try {
-      const response = await withTimeout(
-        ai.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: prompt,
-          config: {
-            systemInstruction: DELUXE_COFFEE_CONTEXT,
-            responseMimeType: 'application/json',
-          },
-        }),
-        2500
-      );
+      const response = await ai.models.generateContent({
+        model: 'gemini-3.8-flash',
+        contents: prompt,
+        config: {
+          systemInstruction: DELUXE_COFFEE_CONTEXT,
+          responseMimeType: 'application/json',
+        },
+      });
       parsed = JSON.parse(response.text || '{}');
     } catch (aiErr: any) {
       console.warn('Gemini sync evaluation fallback:', aiErr.message);

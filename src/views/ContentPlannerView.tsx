@@ -15,10 +15,8 @@ import {
   AlertCircle,
   BarChart,
   Tag,
-  Download,
 } from 'lucide-react';
 import { useData } from '../context/DataContext.tsx';
-import { generateNotionExportCsv } from '../utils/notionParser.ts';
 import {
   ContentIdea,
   ALL_PILLARS,
@@ -33,7 +31,7 @@ export const ContentPlannerView: React.FC<{
   onEditIdea: (idea: ContentIdea) => void;
   onNavigateStudio: () => void;
 }> = ({ onOpenNewIdea, onEditIdea, onNavigateStudio }) => {
-  const { contentIdeas, publishedContent, deleteContentIdea, updateContentIdea } = useData();
+  const { contentIdeas, deleteContentIdea, updateContentIdea } = useData();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all');
@@ -198,24 +196,6 @@ export const ContentPlannerView: React.FC<{
               Tabel
             </button>
           </div>
-
-          <button
-            onClick={() => {
-              const csv = generateNotionExportCsv(contentIdeas, publishedContent);
-              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `Deluxe_Planner_Notion_${new Date().toISOString().split('T')[0]}.csv`;
-              a.click();
-              URL.revokeObjectURL(url);
-            }}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 rounded-xl shadow-sm transition-colors"
-            title="Ekspor seluruh rencana dan brief konten ke CSV Notion"
-          >
-            <Download className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Ekspor Notion</span>
-          </button>
 
           <button
             onClick={() => onOpenNewIdea()}
